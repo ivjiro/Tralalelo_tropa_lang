@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dataset Viewer — Bangladesh Student Performance</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --color-bg: #ffffff;
+      --color-bg-secondary: #f5f5f3;
+      --color-bg-tertiary: #eeede9;
+      --color-text-primary: #1a1a18;
+      --color-text-secondary: #5f5e5a;
+      --color-text-tertiary: #888780;
+      --color-border: rgba(0,0,0,0.12);
+      --color-border-secondary: rgba(0,0,0,0.25);
+      --color-info-bg: #e6f1fb;
+      --color-info-text: #185fa5;
+      --color-info-border: #378add;
+      --color-success-bg: #eaf3de;
+      --color-success-text: #3b6d11;
+      --color-danger-bg: #fcebeb;
+      --color-danger-text: #a32d2d;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --font: system-ui, -apple-system, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-bg: #1c1c1a;
+        --color-bg-secondary: #252523;
+        --color-bg-tertiary: #2e2e2b;
+        --color-text-primary: #e8e6de;
+        --color-text-secondary: #a09e96;
+        --color-text-tertiary: #6e6c65;
+        --color-border: rgba(255,255,255,0.12);
+        --color-border-secondary: rgba(255,255,255,0.25);
+        --color-info-bg: #042c53;
+        --color-info-text: #85b7eb;
+        --color-info-border: #185fa5;
+        --color-success-bg: #173404;
+        --color-success-text: #97c459;
+        --color-danger-bg: #501313;
+        --color-danger-text: #f09595;
+      }
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      color: var(--color-text-primary);
+    }
+
+    /* Upload zone */
+    .upload-zone {
+      border: 1px dashed var(--color-border-secondary);
+      border-radius: var(--radius-lg);
+      padding: 2.5rem;
+      text-align: center;
+      color: var(--color-text-secondary);
+      font-size: 14px;
+      margin-bottom: 1.5rem;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .upload-zone:hover { background: var(--color-bg-secondary); }
+    .upload-zone input[type="file"] { display: none; }
+    .upload-zone label {
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    .upload-zone svg {
+      width: 32px;
+      height: 32px;
+      color: var(--color-text-tertiary);
+    }
+    .upload-zone strong { color: var(--color-text-primary); font-weight: 500; }
+    .upload-zone small { font-size: 12px; color: var(--color-text-tertiary); }
+
+    /* Stat bar */
+    .stat-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .stat {
+      background: var(--color-bg-secondary);
+      border-radius: var(--radius-md);
+      padding: 8px 14px;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+    .stat strong {
+      color: var(--color-text-primary);
+      font-weight: 500;
+    }
+
+    /* Toolbar */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+    .search-wrap {
+      position: relative;
+      flex: 1;
+      min-width: 200px;
+    }
+    .search-wrap svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 15px;
+      height: 15px;
+      color: var(--color-text-secondary);
+      pointer-events: none;
+    }
+    input[type="text"],
+    select {
+      font-family: var(--font);
+      font-size: 14px;
+      padding: 7px 10px;
+      background: var(--color-bg);
+      color: var(--color-text-primary);
+      border: 1px solid var(--color-border-secondary);
+      border-radius: var(--radius-md);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input[type="text"]:focus,
+    select:focus { border-color: var(--color-info-border); }
+    .search-wrap input[type="text"] { width: 100%; padding-left: 32px; }
+    select { font-size: 13px; }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      min-width: 500px;
+    }
+    thead { background: var(--color-bg-secondary); }
+    th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 500;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--color-border);
+    }
+    th:hover { color: var(--color-text-primary); background: var(--color-bg-tertiary); }
+    th .sort-icon { display: inline-block; margin-left: 4px; opacity: 0.4; font-style: normal; }
+    th.asc .sort-icon,
+    th.desc .sort-icon { opacity: 1; color: var(--color-info-text); }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--color-border);
+      color: var(--color-text-primary);
+    }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: var(--color-bg-secondary); }
+    .numeric { text-align: right; font-variant-numeric: tabular-nums; }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-pass { background: var(--color-success-bg); color: var(--color-success-text); }
+    .badge-fail { background: var(--color-danger-bg); color: var(--color-danger-text); }
+
+    /* Empty state */
+    .empty {
+      padding: 3rem;
+      text-align: center;
+      color: var(--color-text-tertiary);
+      font-size: 14px;
+    }
+
+    /* Pagination */
+    .pagination {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 1rem;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+      flex-wrap: wrap;
+    }
+    .page-btns { display: flex; gap: 4px; margin-left: auto; }
+    .page-btn {
+      padding: 5px 10px;
+      font-size: 12px;
+      font-family: var(--font);
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      background: transparent;
+      border: 1px solid var(--color-border-secondary);
+      color: var(--color-text-primary);
+      transition: background 0.1s;
+    }
+    .page-btn:hover { background: var(--color-bg-secondary); }
+    .page-btn.active {
+      background: var(--color-info-bg);
+      color: var(--color-info-text);
+      border-color: var(--color-info-border);
+    }
+    .page-btn:disabled { opacity: 0.3; cursor: default; }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px;
+      padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Dataset Viewer</h1>
+
+<!-- Upload Zone -->
+<div class="upload-zone" id="dropZone">
+  <input type="file" id="fileInput" accept=".csv">
+  <label for="fileInput">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 3v13M8 7l4-4 4 4"/>
+    </svg>
+    <span>Upload <strong>bangladesh_student_performance.csv</strong> or any CSV</span>
+    <small>Click to browse or drag and drop</small>
+  </label>
+</div>
+
+<!-- Viewer (hidden until CSV is loaded) -->
+<div id="viewerSection" style="display:none;">
+  <div class="stat-bar" id="statBar"></div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/>
+        <path d="M21 21l-4.35-4.35"/>
+      </svg>
+      <input type="text" id="search" placeholder="Search all columns…">
+    </div>
+    <select id="colFilter">
+      <option value="">All columns</option>
+    </select>
+    <select id="rowCount">
+      <option value="10">10 rows</option>
+      <option value="25" selected>25 rows</option>
+      <option value="50">50 rows</option>
+      <option value="100">100 rows</option>
+    </select>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead id="tableHead"></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+
+  <div class="pagination" id="paginationBar"></div>
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────
+  let originalData = [];
+  let currentData  = [];
+  let headers      = [];
+  let sortKey      = null;
+  let sortDir      = 1;
+  let currentPage  = 1;
+
+  const PASS_KEYWORDS = ['pass', 'passed', 'yes', '1', 'good', 'a', 'b'];
+
+  // ── CSV Parser ─────────────────────────────────────────────
+  // Handles quoted fields that may contain commas.
+  function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+    return lines.slice(1).filter(l => l.trim()).map(line => {
+      const values = [];
+      let cur = '', inQuote = false;
+
+      for (const ch of line) {
+        if (ch === '"') {
+          inQuote = !inQuote;
+        } else if (ch === ',' && !inQuote) {
+          values.push(cur.trim());
+          cur = '';
+        } else {
+          cur += ch;
+        }
+      }
+      values.push(cur.trim());
+
+      const obj = {};
+      headers.forEach((h, i) => {
+        let v = (values[i] || '').replace(/^"|"$/g, '');
+        obj[h] = (!isNaN(v) && v !== '') ? Number(v) : v;
+      });
+      return obj;
+    });
+  }
+
+  // ── Helpers ────────────────────────────────────────────────
+  function isNumericCol(key) {
+    return originalData.slice(0, 20).every(r => typeof r[key] === 'number' || r[key] === '');
+  }
+
+  // ── Stats bar ──────────────────────────────────────────────
+  function updateStats() {
+    const numericCols = headers.filter(isNumericCol);
+    const stats = [
+      `<div class="stat">Total rows <strong>${originalData.length.toLocaleString()}</strong></div>`,
+      `<div class="stat">Filtered <strong>${currentData.length.toLocaleString()}</strong></div>`,
+      `<div class="stat">Columns <strong>${headers.length}</strong></div>`,
+    ];
+
+    if (numericCols.length > 0) {
+      const col  = numericCols[numericCols.length - 1];
+      const vals = currentData.map(r => r[col]).filter(v => typeof v === 'number');
+      if (vals.length) {
+        const avg = (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
+        stats.push(`<div class="stat">Avg ${col} <strong>${avg}</strong></div>`);
+      }
+    }
+
+    document.getElementById('statBar').innerHTML = stats.join('');
+  }
+
+  // ── Render Table ───────────────────────────────────────────
+  function renderTable() {
+    const rowsPerPage = parseInt(document.getElementById('rowCount').value);
+    const totalPages  = Math.max(1, Math.ceil(currentData.length / rowsPerPage));
+    if (currentPage > totalPages) currentPage = totalPages;
+
+    const start    = (currentPage - 1) * rowsPerPage;
+    const pageData = currentData.slice(start, start + rowsPerPage);
+
+    // Header
+    document.getElementById('tableHead').innerHTML =
+      '<tr>' +
+      headers.map(h => {
+        const cls  = sortKey === h ? (sortDir === 1 ? 'asc' : 'desc') : '';
+        const icon = sortKey === h ? (sortDir === 1 ? '↑' : '↓') : '⬍';
+        return `<th class="${cls}" onclick="sortData('${h}')">${h} <i class="sort-icon">${icon}</i></th>`;
+      }).join('') +
+      '</tr>';
+
+    // Body
+    if (!pageData.length) {
+      document.getElementById('tableBody').innerHTML =
+        `<tr><td colspan="${headers.length}" class="empty">No matching rows found</td></tr>`;
+    } else {
+      document.getElementById('tableBody').innerHTML = pageData.map(row =>
+        '<tr>' +
+        headers.map(h => {
+          const v   = row[h];
+          const num = typeof v === 'number';
+
+          // Badge for pass/fail-style string columns
+          if (!num && typeof v === 'string' && v.length < 12) {
+            const lv = v.toLowerCase();
+            if (['pass', 'fail', 'passed', 'failed', 'yes', 'no'].includes(lv)) {
+              const isPass = PASS_KEYWORDS.includes(lv);
+              return `<td><span class="badge ${isPass ? 'badge-pass' : 'badge-fail'}">${v}</span></td>`;
+            }
+          }
+
+          return `<td class="${num ? 'numeric' : ''}">${(v === '' || v === undefined) ? '—' : v}</td>`;
+        }).join('') +
+        '</tr>'
+      ).join('');
+    }
+
+    // Pagination bar
+    const showing = Math.min(start + rowsPerPage, currentData.length);
+    const pageBtns = Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+      const p = totalPages <= 7 ? i + 1 : (currentPage <= 4 ? i + 1 : currentPage - 3 + i);
+      if (p < 1 || p > totalPages) return '';
+      return `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goPage(${p})">${p}</button>`;
+    }).join('');
+
+    document.getElementById('paginationBar').innerHTML =
+      `<span>Showing ${start + 1}–${showing} of ${currentData.length.toLocaleString()}</span>
+       <div class="page-btns">
+         <button class="page-btn" onclick="goPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>
+         ${pageBtns}
+         <button class="page-btn" onclick="goPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>
+       </div>`;
+
+    updateStats();
+  }
+
+  // ── Pagination ─────────────────────────────────────────────
+  function goPage(p) {
+    const rowsPerPage = parseInt(document.getElementById('rowCount').value);
+    const totalPages  = Math.max(1, Math.ceil(currentData.length / rowsPerPage));
+    currentPage = Math.max(1, Math.min(p, totalPages));
+    renderTable();
+  }
+
+  // ── Filter ─────────────────────────────────────────────────
+  function filterData() {
+    const search     = document.getElementById('search').value.toLowerCase();
+    const col        = document.getElementById('colFilter').value;
+    const searchCols = col ? [col] : headers;
+
+    currentData = originalData.filter(row =>
+      searchCols.some(h => String(row[h]).toLowerCase().includes(search))
+    );
+
+    currentPage = 1;
+    renderTable();
+  }
+
+  // ── Sort ───────────────────────────────────────────────────
+  function sortData(key) {
+    if (sortKey === key) {
+      sortDir *= -1;
+    } else {
+      sortKey = key;
+      sortDir = 1;
+    }
+
+    currentData.sort((a, b) => {
+      const av = a[key], bv = b[key];
+      if (av < bv) return -1 * sortDir;
+      if (av > bv) return  1 * sortDir;
+      return 0;
+    });
+
+    renderTable();
+  }
+
+  // ── Init column filter dropdown ────────────────────────────
+  function initColFilter() {
+    document.getElementById('colFilter').innerHTML =
+      '<option value="">All columns</option>' +
+      headers.map(h => `<option value="${h}">${h}</option>`).join('');
+  }
+
+  // ── Load CSV ───────────────────────────────────────────────
+  function loadCSV(text) {
+    originalData = parseCSV(text);
+    currentData  = [...originalData];
+    sortKey      = null;
+    sortDir      = 1;
+    currentPage  = 1;
+
+    document.getElementById('dropZone').style.display     = 'none';
+    document.getElementById('viewerSection').style.display = '';
+
+    initColFilter();
+    renderTable();
+  }
+
+  // ── File input ─────────────────────────────────────────────
+  document.getElementById('fileInput').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => loadCSV(ev.target.result);
+    reader.readAsText(file);
+  });
+
+  // ── Drag & drop ────────────────────────────────────────────
+  const dz = document.getElementById('dropZone');
+  dz.addEventListener('dragover', e => {
+    e.preventDefault();
+    dz.style.background = 'var(--color-bg-secondary)';
+  });
+  dz.addEventListener('dragleave', () => {
+    dz.style.background = '';
+  });
+  dz.addEventListener('drop', e => {
+    e.preventDefault();
+    dz.style.background = '';
+    const file = e.dataTransfer.files[0];
+    if (file && file.name.endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = ev => loadCSV(ev.target.result);
+      reader.readAsText(file);
+    }
+  });
+
+  // ── Event listeners ────────────────────────────────────────
+  document.getElementById('search').addEventListener('input', filterData);
+  document.getElementById('colFilter').addEventListener('change', filterData);
+  document.getElementById('rowCount').addEventListener('change', () => {
+    currentPage = 1;
+    renderTable();
+  });
+</script>
+
+</body>
+</html>
