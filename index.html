@@ -1106,6 +1106,148 @@ function renderStats(data) {
  
 })(); // The () here immediately invokes the function.
 
+
+/* ═══════════════════════════════════════════════════════════════
+     STUDENT 2 (GUZMAN) CONTRIBUTION — Data Visualizations
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── drawBarChart(data) ───────────────────────────────────────────
+   Creates a bar chart showing the average final score for each
+   unique study-hours value in the dataset.
+
+   Why average instead of raw points?
+   Multiple students can share the same study-hours value, so
+   averaging collapses them into a single, readable bar height.
+
+   Steps:
+     1. Locate the "score" and "study/hours" columns by name pattern.
+     2. Group all score values by their study-hours value.
+     3. Average each group to get one bar per hours bucket.
+     4. Pass sorted labels + averaged values to Chart.js.
+────────────────────────────────────────────────────────────────── */
+function drawBarChart(data) {
+  // Pull all column names from the first row — same pattern Student 3 uses.
+  const keys = Object.keys(data[0] || {});
+
+  // Find the score column. This dataset uses "HSC_Result" (Bangladesh Higher Secondary
+  // Certificate GPA, 0–5 scale). Prefer HSC over SSC, then fall back to any column
+  // containing "result" or "gpa" so the function works with other CSVs too.
+  const scoreKey = keys.find(k => /hsc/i.test(k)) || keys.find(k => /result|gpa/i.test(k));
+
+  // Find the study-hours column: accepts "studyHours", "Study Hours", "hours", etc.
+  const hoursKey = keys.find(k => /study|hours/i.test(k));
+
+  // If either required column is missing, exit silently so nothing breaks.
+  if (!scoreKey || !hoursKey) return;
+
+  // Build a lookup: { studyHoursValue → [score, score, ...] }
+  // This lets us group every student score under their hours value.
+  const groups = {};
+  data.forEach(row => {
+    const h = row[hoursKey];
+    const s = row[scoreKey];
+    // Skip rows where either value is not a real number (handles blanks/NaN).
+    if (typeof h !== 'number' || typeof s !== 'number') return;
+    if (!groups[h]) groups[h] = [];
+    groups[h].push(s);
+  });
+
+  // Sort the study-hours values numerically so bars run left → right in order.
+  const labels = Object.keys(groups).map(Number).sort((a, b) => a - b);
+
+  // For each hours value, compute the mean score across all students in that group.
+  const values = labels.map(h => {
+    const arr = groups[h];
+    return parseFloat((arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2));
+  });
+
+  // Destroy any previously rendered instance on this canvas.
+  // Without this, Chart.js throws "canvas already in use" when the user reloads a CSV.
+  if (window._chartBar) window._chartBar.destroy();
+
+  // Get the 2D drawing context of the canvas element.
+  const ctx = document.getElementById('chartBar').getContext('2d');
+
+  // Create the Chart.js bar chart and store the instance globally for later cleanup.
+  window._chartBar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Avg Final Score',
+        data: values,
+        // Blue tones match the info-color theme already used in Student 3's panels.
+        backgroundColor: 'rgba(56, 138, 221, 0.55)',
+        borderColor:     'rgba(56, 138, 221, 1)',
+        borderWidth: 1,
+        borderRadius: 4,   // Slight rounding to match the page's rounded-corner style.
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },  // Label is obvious from the card title.
+      scales: {
+        x: { title: { display: true, text: hoursKey } },
+        y: { title: { display: true, text: 'Avg Score' }, beginAtZero: false }
+      }
+    }
+  });
+}
+
+
+/* ── drawScatterPlot(data) ────────────────────────────────────────
+   Creates a scatter plot with Attendance % on the x-axis and
+   Final Score on the y-axis.
+
+   A scatter plot works well here because both columns are continuous
+   numbers, and we want to see the overall shape of the relationship
+   rather than summarised averages.
+
+   Chart.js scatter type expects data as an array of { x, y } objects.
+────────────────────────────────────────────────────────────────── */
+function drawScatterPlot(data) {
+  const keys = Object.keys(data[0] || {});
+  // Same priority logic as drawBarChart: prefer HSC_Result, fall back to result/gpa.
+  const scoreKey  = keys.find(k => /hsc/i.test(k)) || keys.find(k => /result|gpa/i.test(k));
+
+  // Find the attendance column: accepts "attendance", "Attendance %", etc.
+  const attendKey = keys.find(k => /attend/i.test(k));
+
+  // Both columns must exist for a meaningful scatter plot.
+  if (!scoreKey || !attendKey) return;
+
+  // Map each row to a { x, y } point and drop any row with a non-numeric value.
+  // Chart.js scatter requires this exact shape — no bare arrays allowed.
+  const points = data
+    .map(row => ({ x: row[attendKey], y: row[scoreKey] }))
+    .filter(p => typeof p.x === 'number' && typeof p.y === 'number');
+
+  if (window._chartScatter) window._chartScatter.destroy();
+
+  const ctx = document.getElementById('chartScatter').getContext('2d');
+
+  window._chartScatter = new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Student',
+        data: points,
+        // Cyan / teal so this chart is visually distinct from the blue bar chart.
+        backgroundColor: 'rgba(97, 218, 251, 0.45)',
+        pointRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { title: { display: true, text: attendKey } },
+        y: { title: { display: true, text: scoreKey  } }
+      }
+    }
+  });
+}
+
 </script>
 
 </body>
