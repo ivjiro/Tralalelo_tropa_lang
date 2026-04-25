@@ -1405,6 +1405,57 @@ function drawPieChart(data) {
   });
 }
 
+
+/* ── initCharts(data) ────────────────────────────────────────────
+   Entry point called once after the CSV is loaded.
+   Shows the visualization section and fires all four draw functions.
+   This is the equivalent of onDataReady() mentioned in the TODO —
+   it is triggered by the hookInitCharts wrapper below.
+────────────────────────────────────────────────────────────────── */
+function initCharts(data) {
+  // Make the visualization section visible now that real data exists.
+  document.getElementById('vizSection').style.display = '';
+
+  // Call each chart function in turn.
+  // Order doesn't matter — each targets its own canvas element.
+  drawBarChart(data);
+  drawScatterPlot(data);
+  drawHistogram(data);
+  drawPieChart(data);
+}
+
+
+/* ── hookInitCharts() ────────────────────────────────────────────
+   Uses the same wrapper pattern Student 3 used for hookRenderStats:
+     1. Save whatever version of loadCSV currently exists
+        (which by now is already Student 3's wrapped version).
+     2. Replace loadCSV with a new function that calls the saved
+        version first (so Student 1's table and Student 3's stats
+        still run), then calls initCharts() to render the charts.
+
+   This approach means no student edits another student's code —
+   every section hooks in through the same public loadCSV name.
+
+   The () at the end immediately invokes the function on page load.
+────────────────────────────────────────────────────────────────── */
+(function hookInitCharts() {
+
+  // Save the current loadCSV reference, which is Student 3's wrapped version.
+  var _prev = loadCSV;
+
+  // Overwrite loadCSV with our new wrapper.
+  loadCSV = function(text) {
+    // Always call the previous version first — this fires Student 1's parser
+    // and table render, then Student 3's stats, before we add our charts.
+    _prev(text);
+
+    // originalData is the variable Student 1's loadCSV populates.
+    // By the time we reach this line it is already filled with parsed rows.
+    initCharts(originalData);
+  };
+
+})(); // The () here immediately invokes the function.
+
 </script>
 
 </body>
