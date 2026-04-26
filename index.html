@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dataset Viewer — Bangladesh Student Performance</title>
@@ -243,45 +242,6 @@
       padding: 0; margin: -1px; overflow: hidden;
       clip: rect(0,0,0,0); white-space: nowrap; border: 0;
     }
-
-    .charts-section {
-      margin-top: 2rem;
-    }
-
-    .charts-heading {
-      font-size: 15px;
-      font-weight: 500;
-      margin-bottom: 1rem;
-      color: var(--color-text-primary);
-    }
-
-    .charts-grid  {
-      display: grid;
-      gap: 1rem;
-      grid-template-columns: repeat(2, 1fr);
-    }
-
-    @media (max-width: 700px) {
-      .charts-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .chart-card {
-      background: var(--color-bg-secondary);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      padding: 1rem;
-    }
-
-    .chart-card-title {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--color-text-secondary);
-      margin-bottom: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
   </style>
 </head>
 <body>
@@ -331,33 +291,6 @@
   </div>
 
   <div class="pagination" id="paginationBar"></div>
-
-  <div class="charts-section">
-    <h2 class="charts-heading">Charts</h2>
-    <div class="charts-grid">
-
-      <div class="chart-card">
-        <div class="chart-card-title" id="barChartTitle">Bar Chart</div>
-        <canvas id="barChart"></canvas>
-      </div>
-
-    <div class="chart-card">
-      <div class="chart-card-title" id="scatterChartTitle">Scatter Plot</div>
-      <canvas id="scatterChart"></canvas>
-    </div>
-
-    <div class="chart-card">
-      <div class="chart-card-title" id="histogramChartTitle">Histogram</div>
-      <canvas id="histogramChart"></canvas>
-    </div>
-
-    <div class="chart-card">
-      <div class="chart-card-title" id="pieChartTitle">Pie Chart</div>
-      <canvas id="pieChart"></canvas>
-    </div>
-
-  </div>
-</div>
 </div>
 
 <script>
@@ -553,7 +486,6 @@
 
     initColFilter();
     renderTable();
-    initCharts();
   }
 
   // ── File input ─────────────────────────────────────────────
@@ -584,170 +516,6 @@
       reader.readAsText(file);
     }
   });
-
-  // ── Chart instances ────────────────────────────────────────
-  let chartInstances = {};
-
-  function destroyCharts() {
-    Object.values(chartInstances).forEach(c => c.destroy());
-    chartInstances = {};
-  }
-
-  // ── Draw Bar Chart — Study Hours ───────────────────────────
-  function drawBarChart() {
-    const col = headers.find(h => h.trim() === 'Study_Hours_per_Week');
-    if (!col) return;
-
-    const counts = {};
-    originalData.forEach(r => {
-      const v = String(r[col]);
-      counts[v] = (counts[v] || 0) + 1;
-    });
-
-    const labels = Object.keys(counts).sort((a, b) => Number(a) - Number(b));
-    const data = labels.map(l => counts[l]);
-
-    document.getElementById('barChartTitle').textContent = 'Study Hours per Week — Student Count';
-
-    chartInstances.bar = new Chart(document.getElementById('barChart'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{ label: 'Students', data, backgroundColor: 'rgba(55,138,221,0.75)', borderColor: '#378add', borderWidth: 1 }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { title: { display: true, text: col } },
-          y: { beginAtZero: true, title: { display: true, text: 'Number of Students' } }
-        }
-      }
-    });
-  }
-
-  // ── Draw Scatter Plot — Attendance % vs Final Score ────────
-  function drawScatterPlot() {
-    const xCol = headers.find(h => h.trim() === 'Attendance');
-    const yCol = headers.find(h => h.trim() === 'Previous_GPA');
-    if (!xCol || !yCol) return;
-
-    const points = originalData
-      .filter(r => typeof r[xCol] === 'number' && typeof r[yCol] === 'number')
-      .map(r => ({ x: r[xCol], y: r[yCol] }));
-
-    document.getElementById('scatterChartTitle').textContent = xCol + ' vs ' + yCol;
-
-    chartInstances.scatter = new Chart(document.getElementById('scatterChart'), {
-      type: 'scatter',
-      data: {
-        datasets: [{ label: xCol + ' vs ' + yCol, data: points, backgroundColor: 'rgba(92,168,92,0.5)', borderColor: '#5ca85c', pointRadius: 3 }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { title: { display: true, text: xCol } },
-          y: { title: { display: true, text: yCol } }
-        }
-      }
-    });
-  }
-
-  // ── Draw Histogram — Final Score Distribution ──────────────
-  function drawHistogram() {
-    const col = headers.find(h => h.trim() === 'Previous_GPA');
-    if (!col) return;
-
-    const vals = originalData.map(r => r[col]).filter(v => typeof v === 'number');
-    if (!vals.length) return;
-
-    const min = Math.min(...vals);
-    const max = Math.max(...vals);
-    const binCount = 10;
-    const binSize = (max - min) / binCount || 1;
-    const bins = Array(binCount).fill(0);
-    const labels = [];
-
-    for (let i = 0; i < binCount; i++) {
-      labels.push((min + i * binSize).toFixed(1) + '–' + (min + (i + 1) * binSize).toFixed(1));
-    }
-    vals.forEach(v => {
-      let idx = Math.floor((v - min) / binSize);
-      if (idx >= binCount) idx = binCount - 1;
-      bins[idx]++;
-    });
-
-    document.getElementById('histogramChartTitle').textContent = 'Previous GPA — Distribution';
-
-    chartInstances.histogram = new Chart(document.getElementById('histogramChart'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{ label: col, data: bins, backgroundColor: 'rgba(224,92,92,0.75)', borderColor: '#e05c5c', borderWidth: 1, barPercentage: 1, categoryPercentage: 1 }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { title: { display: true, text: col } },
-          y: { beginAtZero: true, title: { display: true, text: 'Count' } }
-        }
-      }
-    });
-  }
-
-  // ── Draw Pie Chart — SSC_Result & HSC_Result Distribution ──
-  function drawPieChart() {
-    const sscCol = headers.find(h => h.trim() === 'SSC_Result');
-    const hscCol = headers.find(h => h.trim() === 'HSC_Result');
-    if (!sscCol && !hscCol) return;
-
-    const counts = {};
-    if (sscCol) {
-      originalData.forEach(r => {
-        const v = 'SSC: ' + String(r[sscCol]);
-        counts[v] = (counts[v] || 0) + 1;
-      });
-    }
-    if (hscCol) {
-      originalData.forEach(r => {
-        const v = 'HSC: ' + String(r[hscCol]);
-        counts[v] = (counts[v] || 0) + 1;
-      });
-    }
-
-    const labels = Object.keys(counts).sort();
-    const data = labels.map(l => counts[l]);
-    const palette = [
-      'rgba(55,138,221,0.8)', 'rgba(92,168,92,0.8)', 'rgba(224,92,92,0.8)',
-      'rgba(232,168,56,0.8)', 'rgba(155,109,189,0.8)', 'rgba(58,188,188,0.8)',
-      'rgba(232,116,56,0.8)', 'rgba(124,157,191,0.8)'
-    ];
-
-    document.getElementById('pieChartTitle').textContent = 'SSC & HSC Result Distribution';
-
-    chartInstances.pie = new Chart(document.getElementById('pieChart'), {
-      type: 'pie',
-      data: {
-        labels,
-        datasets: [{ data, backgroundColor: labels.map((_, i) => palette[i % palette.length]), borderWidth: 1 }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
-      }
-    });
-  }
-
-  // ── Init Charts ────────────────────────────────────────────
-  function initCharts() {
-    destroyCharts();
-    drawBarChart();
-    drawScatterPlot();
-    drawHistogram();
-    drawPieChart();
-  }
 
   // ── Event listeners ────────────────────────────────────────
   document.getElementById('search').addEventListener('input', filterData);
