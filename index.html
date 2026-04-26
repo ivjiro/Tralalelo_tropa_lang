@@ -761,9 +761,10 @@ function median(arr) {
  
  
 /* ── mode(arr) ────────────────────────────────────────────────────
-   Finds the most frequently occurring value(s) in the array.
-   If multiple values tie for the highest count, returns all of them
-   joined together with " & " (e.g. "75 & 80").
+   Returns the most frequently occurring value(s).
+   Builds a frequency map { value: count }, finds the max count,
+   then collects all values that hit that count (handles ties).
+   Ties are joined with " & " e.g. "4.5 & 4.61"
 ────────────────────────────────────────────────────────────────── */
 function mode(arr) {
   // Create an empty object to use as a frequency map: { value: count }.
